@@ -1,0 +1,2558 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vidya University - Interactive Timetable Portal</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <!-- SheetJS for client-side Excel Parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --primary: #4338ca;
+      --primary-light: #6366f1;
+      --primary-subtle: #eef2ff;
+      --accent: #0ea5e9;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --border: #e2e8f0;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --lunch-bg: linear-gradient(180deg, #fef3c7 0%, #fde68a 100%);
+      --lunch-text: #b45309;
+      --lab-bg: #f3e8ff;
+      --lab-border: #d8b4fe;
+      --lab-text: #6b21a8;
+      --sport-bg: #dcfce7;
+      --sport-border: #86efac;
+      --sport-text: #166534;
+      --lib-bg: #ffedd5;
+      --lib-border: #fed7aa;
+      --lib-text: #9a3412;
+      --cert-bg: #ccfbf1;
+      --cert-border: #5eead4;
+      --cert-text: #115e59;
+      --highlight: #fef08a;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      --radius: 12px;
+    }
+
+    [data-theme="dark"] {
+      --primary: #6366f1;
+      --primary-light: #818cf8;
+      --primary-subtle: #1e1b4b;
+      --accent: #38bdf8;
+      --bg: #0b0f19;
+      --card-bg: #111827;
+      --border: #1f2937;
+      --text-main: #f9fafb;
+      --text-muted: #9ca3af;
+      --lunch-bg: linear-gradient(180deg, #451a03 0%, #78350f 100%);
+      --lunch-text: #fde68a;
+      --lab-bg: #3b0764;
+      --lab-border: #7e22ce;
+      --lab-text: #f3e8ff;
+      --sport-bg: #052e16;
+      --sport-border: #15803d;
+      --sport-text: #bbf7d0;
+      --lib-bg: #431407;
+      --lib-border: #9a3412;
+      --lib-text: #ffedd5;
+      --cert-bg: #042f2e;
+      --cert-border: #0f766e;
+      --cert-text: #99f6e4;
+      --highlight: #854d0e;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      line-height: 1.5;
+      padding: 24px;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .container {
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+
+    header {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 30px;
+      margin-bottom: 22px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .header-info h1 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--primary);
+      text-transform: uppercase;
+    }
+
+    .header-info h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .header-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 16px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text-main);
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background: var(--primary-subtle);
+      border-color: var(--primary-light);
+      color: var(--primary);
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-light);
+      color: white;
+    }
+
+    .btn-upload {
+      background: #10b981;
+      color: white;
+      border-color: #10b981;
+    }
+
+    .btn-upload:hover {
+      background: #059669;
+      color: white;
+    }
+
+    /* Filters Bar */
+    .controls-wrapper {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 24px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .controls-top {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .faculty-picker-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      border-radius: 8px;
+    }
+
+    .faculty-picker-wrap label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .faculty-select {
+      background: transparent;
+      border: none;
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 700;
+      outline: none;
+      cursor: pointer;
+      max-width: 280px;
+    }
+
+    .faculty-select option {
+      background: var(--card-bg);
+      color: var(--text-main);
+    }
+
+    .category-filter {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .filter-chip {
+      padding: 6px 14px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .filter-chip.active,
+    .filter-chip:hover {
+      background: var(--primary-subtle);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .search-input-wrap {
+      position: relative;
+      min-width: 240px;
+      flex: 1;
+      max-width: 320px;
+    }
+
+    .search-input-wrap input {
+      width: 100%;
+      padding: 9px 14px 9px 36px;
+      font-size: 0.875rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text-main);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-input-wrap input:focus {
+      border-color: var(--primary);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      fill: var(--text-muted);
+    }
+
+    /* Tabs Bar */
+    .tab-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+    }
+
+    .tab-btn {
+      padding: 8px 16px;
+      font-size: 0.825rem;
+      font-weight: 700;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+      border-color: var(--primary-light);
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+    }
+
+    .tab-badge {
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Timetable Card */
+    .sheet-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+      margin-bottom: 32px;
+      animation: fadeIn 0.25s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(5px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Sheet Info Banner */
+    .sheet-meta-bar {
+      background: var(--primary-subtle);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .meta-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .tag {
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 6px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tag-blue {
+      background: #e0f2fe;
+      border-color: #7dd3fc;
+      color: #0369a1;
+    }
+
+    .tag-purple {
+      background: #fae8ff;
+      border-color: #f0abfc;
+      color: #86198f;
+    }
+
+    .tag-green {
+      background: #dcfce7;
+      border-color: #86efac;
+      color: #166534;
+    }
+
+    .coordinator-tag {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .wef-pill {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--card-bg);
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    /* Table Grid */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    table.timetable-grid {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: center;
+      min-width: 980px;
+    }
+
+    table.timetable-grid th,
+    table.timetable-grid td {
+      border: 1px solid var(--border);
+      padding: 10px 8px;
+      font-size: 0.825rem;
+    }
+
+    table.timetable-grid thead tr:first-child th {
+      background: var(--card-bg);
+      color: var(--text-muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.725rem;
+      letter-spacing: 0.05em;
+      padding: 9px;
+    }
+
+    table.timetable-grid thead tr:nth-child(2) th {
+      background: var(--bg);
+      color: var(--text-main);
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      font-size: 0.775rem;
+      padding: 7px 5px;
+    }
+
+    .day-cell {
+      font-weight: 800;
+      background: var(--bg) !important;
+      color: var(--primary);
+      width: 100px;
+      letter-spacing: 0.04em;
+    }
+
+    .lunch-cell {
+      background: var(--lunch-bg) !important;
+      color: var(--lunch-text) !important;
+      font-weight: 800;
+      font-size: 1.1rem;
+      letter-spacing: 0.15em;
+      width: 44px;
+      padding: 6px !important;
+      user-select: none;
+    }
+
+    .cell-content {
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.825rem;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      align-items: center;
+      justify-content: center;
+      min-height: 50px;
+      border: 1px solid transparent;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .cell-content:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .type-lecture {
+      background: var(--bg);
+      border-color: var(--border);
+      color: var(--text-main);
+    }
+
+    .type-lab {
+      background: var(--lab-bg);
+      border-color: var(--lab-border);
+      color: var(--lab-text);
+    }
+
+    .type-sports {
+      background: var(--sport-bg);
+      border-color: var(--sport-border);
+      color: var(--sport-text);
+    }
+
+    .type-library {
+      background: var(--lib-bg);
+      border-color: var(--lib-border);
+      color: var(--lib-text);
+    }
+
+    .type-cert {
+      background: var(--cert-bg);
+      border-color: var(--cert-border);
+      color: var(--cert-text);
+    }
+
+    .highlighted {
+      background-color: var(--highlight) !important;
+      color: #854d0e !important;
+      border-color: #facc15 !important;
+      font-weight: 800;
+    }
+
+    /* Subjects Section */
+    .subjects-section {
+      padding: 20px 24px;
+      border-top: 2px solid var(--border);
+      background: var(--card-bg);
+    }
+
+    .subjects-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .subjects-header h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    table.subject-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 0.825rem;
+    }
+
+    table.subject-table th,
+    table.subject-table td {
+      border: 1px solid var(--border);
+      padding: 9px 12px;
+      text-align: left;
+    }
+
+    table.subject-table th {
+      background: var(--bg);
+      font-weight: 700;
+      color: var(--text-muted);
+      font-size: 0.725rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    table.subject-table tr:hover {
+      background: var(--primary-subtle);
+    }
+
+    .code-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      font-size: 0.75rem;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--primary);
+    }
+
+    .faculty-badge {
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    /* Faculty Solo View Specific Cards */
+    .faculty-view-banner {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      color: white;
+      padding: 24px;
+      border-radius: var(--radius);
+      margin-bottom: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .faculty-view-banner h2 {
+      font-size: 1.4rem;
+      font-weight: 800;
+    }
+
+    .faculty-view-banner p {
+      opacity: 0.9;
+      font-size: 0.9rem;
+      margin-top: 4px;
+    }
+
+    .faculty-stats-badges {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .faculty-stat-pill {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(8px);
+      padding: 8px 16px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .faculty-stat-pill .num {
+      font-size: 1.25rem;
+      font-weight: 800;
+      display: block;
+    }
+
+    .faculty-stat-pill .label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Footer */
+    .sheet-footer {
+      padding: 16px 24px;
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      text-align: right;
+    }
+
+    .hod-signature {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+
+    .hod-name {
+      font-weight: 800;
+      font-size: 0.9rem;
+      color: var(--text-main);
+    }
+
+    .hod-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    #fileInput {
+      display: none;
+    }
+
+    @media print {
+      body {
+        padding: 0;
+        background: white;
+        color: black;
+      }
+
+      .controls-wrapper,
+      header .header-actions,
+      .category-filter,
+      .tab-nav {
+        display: none !important;
+      }
+
+      .sheet-card {
+        box-shadow: none;
+        border: 1px solid #999;
+        margin-bottom: 20px;
+        page-break-after: always;
+      }
+
+      table.timetable-grid th,
+      table.timetable-grid td {
+        border-color: #666 !important;
+        font-size: 8pt !important;
+        padding: 5px !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <!-- Header -->
+    <header>
+      <div class="header-info">
+        <h1>Vidya University, Meerut</h1>
+        <h2>Department of Computer Application &bull; Timetable & Faculty Master Portal</h2>
+      </div>
+      <div class="header-actions">
+        <!-- Hidden file input for Excel upload -->
+        <input type="file" id="fileInput" accept=".xlsx, .xls" onchange="handleFileUpload(event)">
+
+        <button class="btn btn-upload" onclick="document.getElementById('fileInput').click()"
+          title="Upload new timetable excel">
+          📤 Upload Timetable (Excel)
+        </button>
+        <button class="btn" id="themeToggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+          <span id="themeIcon">🌙</span> <span id="themeText">Theme</span>
+        </button>
+        <button class="btn btn-primary" onclick="window.print()" title="Print / Save PDF">
+          🖨️ Print / PDF
+        </button>
+      </div>
+    </header>
+
+    <!-- Filter & Faculty Select Bar -->
+    <div class="controls-wrapper">
+      <div class="controls-top">
+
+        <!-- Faculty Dropdown Filter -->
+        <div class="faculty-picker-wrap">
+          <label for="facultyDropdown">👤 Faculty View:</label>
+          <select id="facultyDropdown" class="faculty-select" onchange="handleFacultySelect(this.value)">
+            <option value="ALL">-- Choose faculty --</option>
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+
+        <!-- Category Filter (Visible in Class View) -->
+        <div class="category-filter" id="categoryFilterGroup">
+          <button class="filter-chip active" onclick="filterByProgram('ALL')">All Programs</button>
+          <button class="filter-chip" onclick="filterByProgram('BCA I')">BCA I</button>
+          <button class="filter-chip" onclick="filterByProgram('B.Sc CS I')">B.Sc CS I</button>
+          <button class="filter-chip" onclick="filterByProgram('BCA III')">BCA III</button>
+          <button class="filter-chip" onclick="filterByProgram('BCA V')">BCA V</button>
+          <button class="filter-chip" onclick="filterByProgram('MCA')">MCA</button>
+        </div>
+
+        <!-- Quick Search Bar -->
+        <div class="search-input-wrap">
+          <svg class="search-icon" viewBox="0 0 24 24">
+            <path
+              d="M10 2a8 8 0 015.293 13.707l5 5a1 1 0 01-1.414 1.414l-5-5A8 8 0 1110 2zm0 2a6 6 0 100 12 6 6 0 000-12z" />
+          </svg>
+          <input type="text" id="searchInput" placeholder="Search teacher, room, lab..."
+            onkeyup="handleSearch(this.value)">
+        </div>
+
+      </div>
+
+      <!-- Section Tab Bar (Visible when not in solo faculty mode) -->
+      <div class="tab-nav" id="tabNavContainer">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+
+    <!-- Dynamic Content Container -->
+    <main id="timetableContainer">
+      <!-- Populated dynamically -->
+    </main>
+
+  </div>
+
+  <script>
+    // INITIAL DATA FROM THE UPLOADED 'TT 21 SEPT.xlsx'
+    let TIMETABLE_DATA = [
+      {
+        id: "mca-1-a",
+        tabTitle: "MCA I SEC A",
+        category: "MCA",
+        university: "VIDYA UNIVERSITY, MEERUT",
+        department: "Department of Computer Application",
+        wef: "Tentative Time Table: I Sem w.e.f. 27-07-2026",
+        room: "Beta 206",
+        semester: "MCA Sem: I",
+        section: "SEC :A",
+        coordinator: "MR. KULDEEP KUMAR SINGH",
+        hod: "DR. TARUN VASHISHTH",
+        hodTitle: "HOD",
+        periods: [
+          { name: "FIRST", time: "09:15-10:15" },
+          { name: "SECOND", time: "10:15-11:15" },
+          { name: "THIRD", time: "11:15 - 12:15" },
+          { name: "FOURTH", time: "12:15 - 01:15" },
+          { name: "FIFTH", time: "01:15-01:45", isLunch: true },
+          { name: "SIXTH", time: "01:45- 02:45" },
+          { name: "SEVENTH", time: "02:45 - 03:45" }
+        ],
+        schedule: [
+          {
+            day: "MONDAY", lunchChar: "L",
+            slots: [
+              { text: "AK - (MTA)", colspan: 1 },
+              { text: "HS - (AI & DS)", colspan: 1 },
+              { text: "SK - (RDBMS)", colspan: 1 },
+              { text: "PK - ( PDS)", colspan: 1 },
+              { text: "KP -(MIC PRO LAB)", colspan: 1 },
+              { text: "KK - (P&S)", colspan: 1 }
+            ]
+          },
+          {
+            day: "TUESDAY", lunchChar: "U",
+            slots: [
+              { text: "AK - (MTA)", colspan: 1 },
+              { text: "KK - (P&S)", colspan: 1 },
+              { text: "HS - (AI & DS LAB)", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 },
+              { text: "SK - (RDBMS LAB)", colspan: 2 }
+            ]
+          },
+          {
+            day: "WEDNESDAY", lunchChar: "N",
+            slots: [
+              { text: "KK - (P&S)", colspan: 1 },
+              { text: "HS - (AI & DS)", colspan: 1 },
+              { text: "KP -(MIC PRO)", colspan: 1 },
+              { text: "IT CERTIFACTION", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 },
+              { text: "PK - ( PDS LAB)", colspan: 1 }
+            ]
+          },
+          {
+            day: "THURSDAY", lunchChar: "C",
+            slots: [
+              { text: "SK - (RDBMS)", colspan: 1 },
+              { text: "HS - (AI & DS)", colspan: 1 },
+              { text: "PK - ( PDS)", colspan: 1 },
+              { text: "PK - ( PDS LAB)", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 },
+              { text: "SPORTS", colspan: 1 }
+            ]
+          },
+          {
+            day: "FRIDAY", lunchChar: "H",
+            slots: [
+              { text: "SK - (RDBMS)", colspan: 1 },
+              { text: "PK - ( PDS)", colspan: 1 },
+              { text: "AK - (MTA)", colspan: 1 },
+              { text: "HS - (AI & DS LAB)", colspan: 1 },
+              { text: "SPORTS", colspan: 2 }
+            ]
+          }
+        ],
+        subjects: [
+          { code: "PE01MAAD01", initials: "PDS", name: "PYTHON PROGRAMMING FOR DATA SCIENCE", lectures: 3, facultyInit: "PK", facultyName: "MR. PRASHANT" },
+          { code: "PE01MAAD02", initials: "RDBMS", name: "RELATIONAL DATABASE MANAGEMENT SYSTEM", lectures: 3, facultyInit: "SK", facultyName: "MR. SHYAM KUMAR" },
+          { code: "PE01MAAD03", initials: "AI & DS", name: "ARTIFICIAL INTELLIGENCE & DATA SCIENCE", lectures: 3, facultyInit: "HS", facultyName: "MR. HIMANSHU SAINI" },
+          { code: "PE01MIAD04", initials: "P&S", name: "PROBABILITY & STATISTICS", lectures: 3, facultyInit: "KK", facultyName: "MR. KULDEEP KUMAR SINGH" },
+          { code: "PE01DEAD05", initials: "MTA", name: "MULTIMEDIA TOOLS AND ITS APPLICATION", lectures: 3, facultyInit: "AK", facultyName: "MR. ANKIT KUMAR" },
+          { code: "PE01SEAD01", initials: "MINI PRO", name: "MINI PROJECT", lectures: 2, facultyInit: "KP", facultyName: "MS. KOMAL PANWAR" }
+        ]
+      },
+      {
+        id: "bca-1-a",
+        tabTitle: "BCA I SEC A",
+        category: "BCA I",
+        university: "VIDYA UNIVERSITY, MEERUT",
+        department: "Department of Computer Application",
+        wef: "Tentative Time Table: I Sem w.e.f. 27-07-2026",
+        room: "Beta 211",
+        semester: "BCA Sem: I",
+        section: "SEC :A",
+        coordinator: "MR.. SHYAM KUMAR",
+        hod: "DR. TARUN VASHISHTH",
+        hodTitle: "HOD",
+        periods: [
+          { name: "FIRST", time: "09:15-10:15" },
+          { name: "SECOND", time: "10:15-11:15" },
+          { name: "THIRD", time: "11:15 - 12:15" },
+          { name: "FOURTH", time: "12:15 - 01:15" },
+          { name: "FIFTH", time: "01:15-01:45", isLunch: true },
+          { name: "SIXTH", time: "01:45- 02:45" },
+          { name: "SEVENTH", time: "02:45 - 03:45" }
+        ],
+        schedule: [
+          {
+            day: "MONDAY", lunchChar: "L",
+            slots: [
+              { text: "SK - (CP )", colspan: 1 },
+              { text: "AG -( MMP)", colspan: 1 },
+              { text: "AS -  (MTA)", colspan: 1 },
+              { text: "SHK-( DSOA LAB)", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 },
+              { text: "NC - (BM)", colspan: 1 }
+            ]
+          },
+          {
+            day: "TUESDAY", lunchChar: "U",
+            slots: [
+              { text: "SK - (CP )", colspan: 1 },
+              { text: "SHK-( DSOA)", colspan: 1 },
+              { text: "AG -( MMP)", colspan: 1 },
+              { text: "NC - (BM)", colspan: 1 },
+              { text: "SPORTS", colspan: 2 }
+            ]
+          },
+          {
+            day: "WEDNESDAY", lunchChar: "N",
+            slots: [
+              { text: "SK - (CP )", colspan: 1 },
+              { text: "SHK-( DSOA)", colspan: 1 },
+              { text: "DS- (PC)", colspan: 1 },
+              { text: "AG -( MMP)", colspan: 1 },
+              { text: "AS -  (MTA)", colspan: 1 },
+              { text: "SK -(MIC PRO LAB)", colspan: 1 }
+            ]
+          },
+          {
+            day: "THURSDAY", lunchChar: "C",
+            slots: [
+              { text: "DS - (PC)", colspan: 1 },
+              { text: "SK - (CP LAB)", colspan: 1 },
+              { text: "NC - (BM)", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 },
+              { text: "SK -(MIC PRO LAB)", colspan: 1 },
+              { text: "SPORTS", colspan: 1 }
+            ]
+          },
+          {
+            day: "FRIDAY", lunchChar: "H",
+            slots: [
+              { text: "NC - (BM)", colspan: 1 },
+              { text: "SHK-( DSOA)", colspan: 1 },
+              { text: "AG -( MMP)", colspan: 1 },
+              { text: "SHK-( DSOA LAB)", colspan: 1 },
+              { text: "SK - (CP LAB)", colspan: 1 },
+              { text: "IT CERTIFACTION / APPLE LAB", colspan: 1 }
+            ]
+          }
+        ],
+        subjects: [
+          { code: "UE01MACA01", initials: "PC", name: "PROGRAMMING CONCEPTS USING 'C'", lectures: 3, facultyInit: "SK", facultyName: "MR. SHYAM KUMAR" },
+          { code: "UE01MACA02", initials: "BM", name: "BASIC MATHEMATICS", lectures: 4, facultyInit: "NC", facultyName: "MR. NEERAJ CHAUHAN" },
+          { code: "UE01MICA01", initials: "DSOA", name: "DIGITAL SKILL AND OFFICE AUTOMATION", lectures: 3, facultyInit: "SHK", facultyName: "MS. SANDHYA KUMARI" },
+          { code: "UE01MDCA01", initials: "MMP", name: "MODERN MANAGEMENT AND PRACTICES", lectures: 4, facultyInit: "AG", facultyName: "MS. AARUSHI GUPTA" },
+          { code: "UE01AECA01", initials: "PC", name: "PROFESSIONAL COMMUNICATION", lectures: 2, facultyInit: "DS", facultyName: "MR. DEVANSHU SHARAWAT" },
+          { code: "UE01SECA01", initials: "MTA", name: "MULTIMEDIA TOOLS AND ITS APPLICATION", lectures: 2, facultyInit: "AS", facultyName: "MS. ANJALI SHARMA" },
+          { code: "-", initials: "-", name: "MICRO PROJECT", lectures: 2, facultyInit: "SK", facultyName: "MR. SHYAM KUMAR" }
+        ]
+      },
+      {
+        id: "bca-1-b",
+        tabTitle: "BCA I SEC B",
+        category: "BCA I",
+        university: "VIDYA UNIVERSITY, MEERUT",
+        department: "Department of Computer Application",
+        wef: "Tentative Time Table: I Sem w.e.f. 27-07-2026",
+        room: "Beta 212",
+        semester: "BCA Sem: I",
+        section: "SEC :B",
+        coordinator: "Mr.Neeraj Chauhan",
+        hod: "DR. TARUN VASHISHTH",
+        hodTitle: "HOD",
+        periods: [
+          { name: "FIRST", time: "09:15-10:15" },
+          { name: "SECOND", time: "10:15-11:15" },
+          { name: "THIRD", time: "11:15 - 12:15" },
+          { name: "FOURTH", time: "12:15 - 01:15" },
+          { name: "FIFTH", time: "01:15-01:45", isLunch: true },
+          { name: "SIXTH", time: "01:45- 02:45" },
+          { name: "SEVENTH", time: "02:45 - 03:45" }
+        ],
+        schedule: [
+          {
+            day: "MONDAY", lunchChar: "L",
+            slots: [
+              { text: "AS -  (MTA)", colspan: 1 },
+              { text: "SK - (CP )", colspan: 1 },
+              { text: "AG -( MMP)", colspan: 1 },
+              { text: "NC - (BM)", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 },
+              { text: "SK - (CP LAB )", colspan: 1 }
+            ]
+          },
+          {
+            day: "TUESDAY", lunchChar: "U",
+            slots: [
+              { text: "AS -  (MTA)", colspan: 1 },
+              { text: "SK - (CP )", colspan: 1 },
+              { text: "SHK-( DSOA)", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 },
+              { text: "AG -( MMP)", colspan: 1 },
+              { text: "SPORTS", colspan: 1 }
+            ]
+          },
+          {
+            day: "WEDNESDAY", lunchChar: "N",
+            slots: [
+              { text: "DS - (PC)", colspan: 1 },
+              { text: "SK - (CP )", colspan: 1 },
+              { text: "NC - (BM)", colspan: 1 },
+              { text: "SHK-( DSOA LAB )", colspan: 1 },
+              { text: "SHK-( DSOA)", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 }
+            ]
+          },
+          {
+            day: "THURSDAY", lunchChar: "C",
+            slots: [
+              { text: "NC - (BM)", colspan: 1 },
+              { text: "SHK-( DSOA)", colspan: 1 },
+              { text: "AG -( MMP)", colspan: 1 },
+              { text: "SHK-( DSOA LAB )", colspan: 1 },
+              { text: "NC -(MIC PRO)", colspan: 1 },
+              { text: "IT CERTIFACTION / APPLE LAB", colspan: 1 }
+            ]
+          },
+          {
+            day: "FRIDAY", lunchChar: "H",
+            slots: [
+              { text: "DS - (PC)", colspan: 1 },
+              { text: "NC - (BM)", colspan: 1 },
+              { text: "SK - (CP LAB )", colspan: 1 },
+              { text: "AG -( MMP)", colspan: 1 },
+              { text: "NC -(MIC PRO LAB)", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 }
+            ]
+          }
+        ],
+        subjects: [
+          { code: "UE01MACA01", initials: "PC", name: "PROGRAMMING CONCEPTS USING 'C'", lectures: 3, facultyInit: "SK", facultyName: "MR. SHYAM KUMAR" },
+          { code: "UE01MACA02", initials: "BM", name: "BASIC MATHEMATICS", lectures: 4, facultyInit: "NC", facultyName: "MR. NEERAJ CHAUHAN" },
+          { code: "UE01MICA01", initials: "DSOA", name: "DIGITAL SKILL AND OFFICE AUTOMATION", lectures: 3, facultyInit: "SHK", facultyName: "MS. SANDHYA KUMARI" },
+          { code: "UE01MDCA01", initials: "MMP", name: "MODERN MANAGEMENT AND PRACTICES", lectures: 4, facultyInit: "AG", facultyName: "MS. AARUSHI GUPTA" },
+          { code: "UE01AECA01", initials: "PC", name: "PROFESSIONAL COMMUNICATION", lectures: 2, facultyInit: "DS", facultyName: "MR. DEVANSHU SHARAWAT" },
+          { code: "UE01SECA01", initials: "MTA", name: "MULTIMEDIA TOOLS AND ITS APPLICATION", lectures: 2, facultyInit: "AS", facultyName: "MS. ANJALI SHARMA" },
+          { code: "-", initials: "-", name: "MICRO PROJECT", lectures: 2, facultyInit: "NC", facultyName: "MR. NEERAJ CHAUHAN" }
+        ]
+      },
+      {
+        id: "bca-1-c",
+        tabTitle: "BCA I SEC C",
+        category: "BCA I",
+        university: "VIDYA UNIVERSITY, MEERUT",
+        department: "Department of Computer Application",
+        wef: "Tentative Time Table: I Sem w.e.f. 27-07-2026",
+        room: "Beta 213",
+        semester: "BCA Sem: I",
+        section: "SEC :C",
+        coordinator: "MR.ATUL SHARMA",
+        hod: "DR. TARUN VASHISHTH",
+        hodTitle: "HOD",
+        periods: [
+          { name: "FIRST", time: "09:15-10:15" },
+          { name: "SECOND", time: "10:15-11:15" },
+          { name: "THIRD", time: "11:15 - 12:15" },
+          { name: "FOURTH", time: "12:15 - 01:15" },
+          { name: "FIFTH", time: "01:15-01:45", isLunch: true },
+          { name: "SIXTH", time: "01:45- 02:45" },
+          { name: "SEVENTH", time: "02:45 - 03:45" }
+        ],
+        schedule: [
+          {
+            day: "MONDAY", lunchChar: "L",
+            slots: [
+              { text: "NC - (BM)", colspan: 1 },
+              { text: "ATS-( DSOA)", colspan: 1 },
+              { text: "AT -(MIC PRO LAB)", colspan: 1 },
+              { text: "SK - (CP )", colspan: 1 },
+              { text: "AV -( MMP)", colspan: 1 },
+              { text: "SPORTS", colspan: 1 }
+            ]
+          },
+          {
+            day: "TUESDAY", lunchChar: "U",
+            slots: [
+              { text: "NC - (BM)", colspan: 1 },
+              { text: "ATS-( DSOA)", colspan: 1 },
+              { text: "AV -( MMP)", colspan: 1 },
+              { text: "SK - (CP )", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 },
+              { text: "IT CERTIFACTION / APPLE LAB", colspan: 1 }
+            ]
+          },
+          {
+            day: "WEDNESDAY", lunchChar: "N",
+            slots: [
+              { text: "NC - (BM)", colspan: 1 },
+              { text: "ATS-( DSOA)", colspan: 1 },
+              { text: "SK - (CP )", colspan: 1 },
+              { text: "DS - (PC)", colspan: 1 },
+              { text: "SK - (CP LAB )", colspan: 1 },
+              { text: "SPORTS", colspan: 1 }
+            ]
+          },
+          {
+            day: "THURSDAY", lunchChar: "C",
+            slots: [
+              { text: "AS -  (MTA)", colspan: 1 },
+              { text: "ATS-( DSOA LAB)", colspan: 2 },
+              { text: "AV -( MMP)", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 },
+              { text: "SPORTS", colspan: 1 }
+            ]
+          },
+          {
+            day: "FRIDAY", lunchChar: "H",
+            slots: [
+              { text: "AS -  (MTA)", colspan: 1 },
+              { text: "DS - (PC)", colspan: 1 },
+              { text: "AV -( MMP)", colspan: 1 },
+              { text: "NC - (BM)", colspan: 1 },
+              { text: "AT -(MIC PRO)", colspan: 1 },
+              { text: "SK - (CP LAB )", colspan: 1 }
+            ]
+          }
+        ],
+        subjects: [
+          { code: "UE01MACA01", initials: "PC", name: "PROGRAMMING CONCEPTS USING 'C'", lectures: 3, facultyInit: "SK", facultyName: "MR. SHYAM KUMAR" },
+          { code: "UE01MACA02", initials: "BM", name: "BASIC MATHEMATICS", lectures: 4, facultyInit: "NC", facultyName: "MR. NEERAJ CHAUHAN" },
+          { code: "UE01MICA01", initials: "DSOA", name: "DIGITAL SKILL AND OFFICE AUTOMATION", lectures: 3, facultyInit: "AT", facultyName: "MR. ATUL SHARMA" },
+          { code: "UE01MDCA01", initials: "MMP", name: "MODERN MANAGEMENT AND PRACTICES", lectures: 4, facultyInit: "AV", facultyName: "DR. AMIT VATS" },
+          { code: "UE01AECA01", initials: "PC", name: "PROFESSIONAL COMMUNICATION", lectures: 2, facultyInit: "DS", facultyName: "MR. DIVANSHU SHARAWAT" },
+          { code: "UE01SECA01", initials: "MTA", name: "MULTIMEDIA TOOLS AND ITS APPLICATION", lectures: 2, facultyInit: "AS", facultyName: "MS. ANJALI SHARMA" },
+          { code: "-", initials: "-", name: "MICRO PROJECT", lectures: 2, facultyInit: "AT", facultyName: "MR. ATUL SHARMA" }
+        ]
+      },
+      {
+        id: "bsc-cs-1-a",
+        tabTitle: "BSC CS I SEC A",
+        category: "B.Sc CS I",
+        university: "VIDYA UNIVERSITY, MEERUT",
+        department: "Department of Computer Application",
+        wef: "Tentative Time Table: I Sem w.e.f. 27-07-2026",
+        room: "Beta 210",
+        semester: "B.sc CS Sem: I",
+        section: "SEC :A",
+        coordinator: "MS. Divyanjli",
+        hod: "DR. TARUN VASHISHTH",
+        hodTitle: "HOD",
+        periods: [
+          { name: "FIRST", time: "09:15-10:15" },
+          { name: "SECOND", time: "10:15-11:15" },
+          { name: "THIRD", time: "11:15 - 12:15" },
+          { name: "FOURTH", time: "12:15 - 01:15" },
+          { name: "FIFTH", time: "01:15-01:45", isLunch: true },
+          { name: "SIXTH", time: "01:45- 02:45" },
+          { name: "SEVENTH", time: "02:45 - 03:45" }
+        ],
+        schedule: [
+          {
+            day: "MONDAY", lunchChar: "L",
+            slots: [
+              { text: "AC - (MMP)", colspan: 1 },
+              { text: "AK - (CP)", colspan: 1 },
+              { text: "NC - (BM)", colspan: 1 },
+              { text: "DV - (DSOA)", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 },
+              { text: "DV - (DSOA LAB)", colspan: 1 }
+            ]
+          },
+          {
+            day: "TUESDAY", lunchChar: "U",
+            slots: [
+              { text: "AC - (MMP)", colspan: 1 },
+              { text: "DS-(PC)", colspan: 1 },
+              { text: "NC - (BM)", colspan: 1 },
+              { text: "DV - (DSOA)", colspan: 1 },
+              { text: "NC - (BM)", colspan: 1 },
+              { text: "DV - (DSOA LAB)", colspan: 1 }
+            ]
+          },
+          {
+            day: "WEDNESDAY", lunchChar: "N",
+            slots: [
+              { text: "AK - (CP)", colspan: 1 },
+              { text: "AC - (MMP)", colspan: 1 },
+              { text: "AK - (CP LAB)", colspan: 1 },
+              { text: "DV - (DSOA)", colspan: 1 },
+              { text: "SPORTS", colspan: 2 }
+            ]
+          },
+          {
+            day: "THURSDAY", lunchChar: "C",
+            slots: [
+              { text: "KP- (MM )", colspan: 1 },
+              { text: "AK - (CP)", colspan: 1 },
+              { text: "DS- (PC)", colspan: 1 },
+              { text: "Y- (PRO LAB)", colspan: 1 },
+              { text: "AC - (MMP)", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 }
+            ]
+          },
+          {
+            day: "FRIDAY", lunchChar: "H",
+            slots: [
+              { text: "KP- (MM )", colspan: 1 },
+              { text: "AK - (CP LAB)", colspan: 1 },
+              { text: "NC - (BM)", colspan: 1 },
+              { text: "Y- (PRO LAB)", colspan: 1 },
+              { text: "SPORTS", colspan: 2 }
+            ]
+          }
+        ],
+        subjects: [
+          { code: "US01MACA01", initials: "PC", name: "PROGRAMMING CONCEPTS USING 'C'", lectures: 3, facultyInit: "AK", facultyName: "MR. ANKIT KUMAR" },
+          { code: "US01MACA02", initials: "BM", name: "BASIC MATHEMATICS", lectures: 4, facultyInit: "NC", facultyName: "MR. NEERAJ CHAUHAN" },
+          { code: "US01MICA03", initials: "DSOA", name: "DIGITAL SKILL AND OFFICE AUTOMATION", lectures: 3, facultyInit: "DV", facultyName: "MS. DIVYANJLI" },
+          { code: "US01MDCA05", initials: "MMP", name: "MODERN MANAGEMENT AND PRACTICES", lectures: 3, facultyInit: "AC", facultyName: "MR. ABHISHEK CHAUHAN" },
+          { code: "US01AECA08", initials: "PC", name: "PROFESSIONAL COMMUNICATION", lectures: 2, facultyInit: "DS", facultyName: "MR. DIVANSHU SHERAWAT" },
+          { code: "US01SECA06", initials: "MTA", name: "MULTIMEDIA TOOLS AND ITS APPLICATION", lectures: 2, facultyInit: "SK", facultyName: "MS. KOMAL PANWAR" },
+          { code: "-", initials: "-", name: "MICRO PROJECT", lectures: 2, facultyInit: "Y", facultyName: "MR. Y" }
+        ]
+      },
+      {
+        id: "bca-3-a",
+        tabTitle: "BCA III SEC A",
+        category: "BCA III",
+        university: "VIDYA UNIVERSITY, MEERUT",
+        department: "Department of Computer Application",
+        wef: "Tentative Time Table: III Sem w.e.f. 28-07-2026",
+        room: "Beta 220",
+        semester: "BCA Sem: III",
+        section: "SEC : A AI/ML",
+        coordinator: "Ms. Sandhya Kumari",
+        hod: "DR. TARUN VASHISHTH",
+        hodTitle: "HOD",
+        periods: [
+          { name: "FIRST", time: "09:15-10:15" },
+          { name: "SECOND", time: "10:15-11:15" },
+          { name: "THIRD", time: "11:15 - 12:15" },
+          { name: "FOURTH", time: "12:15 - 01:15" },
+          { name: "FIFTH", time: "01:15-01:45", isLunch: true },
+          { name: "SIXTH", time: "01:45- 02:45" },
+          { name: "SEVENTH", time: "02:45 - 03:45" }
+        ],
+        schedule: [
+          {
+            day: "MONDAY", lunchChar: "L",
+            slots: [
+              { text: "HS - (AI/ML)", colspan: 1 },
+              { text: "KP - (DS)", colspan: 1 },
+              { text: "SK - (PP)", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 },
+              { text: "HS - (AI/ML LAB)", colspan: 2 }
+            ]
+          },
+          {
+            day: "TUESDAY", lunchChar: "U",
+            slots: [
+              { text: "HS - (AI/ML)", colspan: 1 },
+              { text: "KP - (DS)", colspan: 1 },
+              { text: "KK - (P&S)", colspan: 1 },
+              { text: "SK - (MINI PROJ)", colspan: 1 },
+              { text: "IT CERTIFACTION / APPLE LAB", colspan: 1 },
+              { text: "SPORTS", colspan: 1 }
+            ]
+          },
+          {
+            day: "WEDNESDAY", lunchChar: "N",
+            slots: [
+              { text: "HS - (AI/ML)", colspan: 1 },
+              { text: "KP - (DS)", colspan: 1 },
+              { text: "KK - (P&S)", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 },
+              { text: "KP - (DS LAB)", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 }
+            ]
+          },
+          {
+            day: "THURSDAY", lunchChar: "C",
+            slots: [
+              { text: "SK - (PP)", colspan: 1 },
+              { text: "KK - (P&S)", colspan: 1 },
+              { text: "AS - ( DIG MA)", colspan: 1 },
+              { text: "KP - (DS LAB)", colspan: 1 },
+              { text: "SK - (MINI PROJ)", colspan: 1 },
+              { text: "SPORTS", colspan: 1 }
+            ]
+          },
+          {
+            day: "FRIDAY", lunchChar: "H",
+            slots: [
+              { text: "SK - (PP)", colspan: 1 },
+              { text: "KK - (P&S)", colspan: 1 },
+              { text: "SK - (PP LAB)", colspan: 1 },
+              { text: "AS - ( DIG MA)", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 },
+              { text: "SK - (PP LAB)", colspan: 1 }
+            ]
+          }
+        ],
+        subjects: [
+          { code: "UE02MAAM05", initials: "AI/ML", name: "ARTIFCIAL INTELLIGENCE & MACHINE LEARNING", lectures: 3, facultyInit: "HS", facultyName: "MR. HIMANSHU SAINI" },
+          { code: "UE02MAAM06", initials: "DS", name: "DATA STRUCTURE USING C", lectures: 3, facultyInit: "KP", facultyName: "MS. KOMAL PANWAR" },
+          { code: "UE02MAAM07", initials: "PP", name: "PYTHON PROGRAMMING", lectures: 3, facultyInit: "SK", facultyName: "MS. SANDHYA KUMARI" },
+          { code: "UE02MDAM03", initials: "P&S", name: "PROBABILITY & STATISTICS", lectures: 4, facultyInit: "KK", facultyName: "MR. KULDEEP KUMAR SINGH" },
+          { code: "UE02AEAM03", initials: "DIG MA", name: "DIGITAL MARKETING", lectures: 2, facultyInit: "AS", facultyName: "MS. ANJALI SHARMA" },
+          { code: "UE02SEAM03", initials: "MINI PRO", name: "MINI PROJECT", lectures: 2, facultyInit: "SK", facultyName: "MS. SANDHYA KUMARI" },
+          { code: "UE02VAAM03", initials: "IT", name: "IT CERTIFICATION/APPLE LAB", lectures: 1, facultyInit: "AP", facultyName: "MR. ARPIT" }
+        ]
+      },
+      {
+        id: "bca-3-b",
+        tabTitle: "BCA III SEC B",
+        category: "BCA III",
+        university: "VIDYA UNIVERSITY, MEERUT",
+        department: "Department of Computer Application",
+        wef: "Tentative Time Table: III Sem w.e.f. 27-07-2026",
+        room: "Beta 219",
+        semester: "BCA Sem: III",
+        section: "SEC :B AI/ML",
+        coordinator: "Mr. Himanshu Saini",
+        hod: "DR. TARUN VASHISHTH",
+        hodTitle: "HOD",
+        periods: [
+          { name: "FIRST", time: "09:15-10:15" },
+          { name: "SECOND", time: "10:15-11:15" },
+          { name: "THIRD", time: "11:15 - 12:15" },
+          { name: "FOURTH", time: "12:15 - 01:15" },
+          { name: "FIFTH", time: "01:15-01:45", isLunch: true },
+          { name: "SIXTH", time: "01:45- 02:45" },
+          { name: "SEVENTH", time: "02:45 - 03:45" }
+        ],
+        schedule: [
+          {
+            day: "MONDAY", lunchChar: "L",
+            slots: [
+              { text: "SK - (PP)", colspan: 1 },
+              { text: "KK - (P&S)", colspan: 1 },
+              { text: "HS - (MINI PROJ)", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 },
+              { text: "SK - (PP LAB)", colspan: 2 }
+            ]
+          },
+          {
+            day: "TUESDAY", lunchChar: "U",
+            slots: [
+              { text: "SK - (PP)", colspan: 1 },
+              { text: "HS - (AI/ML)", colspan: 1 },
+              { text: "AS - ( DIG MA)", colspan: 1 },
+              { text: "HS - (AI/ML LAB)", colspan: 1 },
+              { text: "SPORTS", colspan: 2 }
+            ]
+          },
+          {
+            day: "WEDNESDAY", lunchChar: "N",
+            slots: [
+              { text: "SK - (PP)", colspan: 1 },
+              { text: "KK - (P&S)", colspan: 1 },
+              { text: "AS - ( DIG MA)", colspan: 1 },
+              { text: "KP - (DS)", colspan: 1 },
+              { text: "IT CERTIFACTION / APPLE LAB", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 }
+            ]
+          },
+          {
+            day: "THURSDAY", lunchChar: "C",
+            slots: [
+              { text: "HS - (AI/ML)", colspan: 1 },
+              { text: "KP - (DS)", colspan: 1 },
+              { text: "KK - (P&S)", colspan: 1 },
+              { text: "HS - (AI/ML LAB)", colspan: 1 },
+              { text: "SPORTS", colspan: 2 }
+            ]
+          },
+          {
+            day: "FRIDAY", lunchChar: "H",
+            slots: [
+              { text: "HS - (AI/ML)", colspan: 1 },
+              { text: "KP- (DS)", colspan: 1 },
+              { text: "KK - (P&S)", colspan: 1 },
+              { text: "KP - (DS LAB)", colspan: 1 },
+              { text: "KP - (DS LAB)", colspan: 1 },
+              { text: "HS - (MINI PROJ)", colspan: 1 }
+            ]
+          }
+        ],
+        subjects: [
+          { code: "UE02MAAM05", initials: "AI/ML", name: "ARTIFCIAL INTELLIGENCE & MACHINE LEARNING", lectures: 3, facultyInit: "HS", facultyName: "MR. HIMANSHU SAINI" },
+          { code: "UE02MAAM06", initials: "DS", name: "DATA STRUCTURE USING C", lectures: 3, facultyInit: "KP", facultyName: "MS. KOMAL PANWAR" },
+          { code: "UE02MAAM07", initials: "PP", name: "PYTHON PROGRAMMING", lectures: 3, facultyInit: "SK", facultyName: "MS. SANDHYA KUMARI" },
+          { code: "UE02MDAM03", initials: "P&S", name: "PROBABILITY & STATISTICS", lectures: 4, facultyInit: "KK", facultyName: "MR. KULDEEP KUMAR SINGH" },
+          { code: "UE02AEAM03", initials: "DIG MA", name: "DIGITAL MARKETING", lectures: 2, facultyInit: "AS", facultyName: "MS. ANJALI SHARMA" },
+          { code: "UE02SEAM03", initials: "MINI PRO", name: "MINI PROJECT", lectures: 2, facultyInit: "HS", facultyName: "MR. HIMANSHU SAINI" },
+          { code: "UE02VAAM03", initials: "IT", name: "IT CERTIFICATION/APPLE LAB", lectures: 1, facultyInit: "AP", facultyName: "MR. ARPIT" }
+        ]
+      },
+      {
+        id: "bca-3-c",
+        tabTitle: "BCA III SEC C",
+        category: "BCA III",
+        university: "VIDYA UNIVERSITY, MEERUT",
+        department: "Department of Computer Application",
+        wef: "Tentative Time Table: III Sem w.e.f. 27-07-2026",
+        room: "Beta 218",
+        semester: "BCA Sem: III",
+        section: "SEC : C AI/ML",
+        coordinator: "Ms. Divyanjli",
+        hod: "DR. TARUN VASHISHTH",
+        hodTitle: "HOD",
+        periods: [
+          { name: "FIRST", time: "09:15-10:15" },
+          { name: "SECOND", time: "10:15-11:15" },
+          { name: "THIRD", time: "11:15 - 12:15" },
+          { name: "FOURTH", time: "12:15 - 01:15" },
+          { name: "FIFTH", time: "01:15-01:45", isLunch: true },
+          { name: "SIXTH", time: "01:45- 02:45" },
+          { name: "SEVENTH", time: "02:45 - 03:45" }
+        ],
+        schedule: [
+          {
+            day: "MONDAY", lunchChar: "L",
+            slots: [
+              { text: "PK - (AI/ML)", colspan: 1 },
+              { text: "DV - (DS)", colspan: 1 },
+              { text: "AK - (PP)", colspan: 1 },
+              { text: "IT CERTIFACTION / APPLE LAB", colspan: 1 },
+              { text: "KK - (P&S)", colspan: 1 },
+              { text: "SPORTS", colspan: 1 }
+            ]
+          },
+          {
+            day: "TUESDAY", lunchChar: "U",
+            slots: [
+              { text: "PK - (AI/ML)", colspan: 1 },
+              { text: "DV - (DS)", colspan: 1 },
+              { text: "PK - (AI/ML LAB)", colspan: 1 },
+              { text: "KK - (P&S)", colspan: 1 },
+              { text: "PK - (AI/ML LAB)", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 }
+            ]
+          },
+          {
+            day: "WEDNESDAY", lunchChar: "N",
+            slots: [
+              { text: "PK - (AI/ML)", colspan: 1 },
+              { text: "DV - (DS)", colspan: 1 },
+              { text: "DV - (DS LAB )", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 },
+              { text: "DV - (DS LAB )", colspan: 1 },
+              { text: "SPORTS", colspan: 1 }
+            ]
+          },
+          {
+            day: "THURSDAY", lunchChar: "C",
+            slots: [
+              { text: "AK - (PP)", colspan: 1 },
+              { text: "AS - ( DIG MA)", colspan: 1 },
+              { text: "DV - (MINI PROJ LAB)", colspan: 1 },
+              { text: "KK - (P&S)", colspan: 1 },
+              { text: "SPORTS", colspan: 2 }
+            ]
+          },
+          {
+            day: "FRIDAY", lunchChar: "H",
+            slots: [
+              { text: "AK - (PP)", colspan: 1 },
+              { text: "AS - ( DIG MA)", colspan: 1 },
+              { text: "DV - (MINI PROJ)", colspan: 1 },
+              { text: "KK - (P&S)", colspan: 1 },
+              { text: "AK - (PP LAB )", colspan: 2 }
+            ]
+          }
+        ],
+        subjects: [
+          { code: "UE02MAAM05", initials: "AI/ML", name: "ARTIFCIAL INTELLIGENCE & MACHINE LEARNING", lectures: 3, facultyInit: "PK", facultyName: "MR. PRASHANT KUMAR" },
+          { code: "UE02MAAM06", initials: "DS", name: "DATA STRUCTURE USING C", lectures: 3, facultyInit: "DV", facultyName: "MS. DIVYANJLI" },
+          { code: "UE02MAAM07", initials: "PP", name: "PYTHON PROGRAMMING", lectures: 3, facultyInit: "AK", facultyName: "MR. ANKIT KUMAR" },
+          { code: "UE02MDAM03", initials: "P&S", name: "PROBABILITY & STATISTICS", lectures: 4, facultyInit: "KK", facultyName: "MR. KULDEEP KUMAR SINGH" },
+          { code: "UE02AEAM03", initials: "DIG MA", name: "DIGITAL MARKETING", lectures: 2, facultyInit: "AS", facultyName: "MS. ANJALI SHARMA" },
+          { code: "UE02SEAM03", initials: "MINI PRO", name: "MINI PROJECT", lectures: 2, facultyInit: "DV", facultyName: "MS. DIVYANJLI" },
+          { code: "UE02VAAM03", initials: "IT", name: "IT CERTIFICATION/APPLE LAB", lectures: 1, facultyInit: "AP", facultyName: "MR. ARPIT" }
+        ]
+      },
+      {
+        id: "bca-3-d",
+        tabTitle: "BCA III SEC D",
+        category: "BCA III",
+        university: "VIDYA UNIVERSITY, MEERUT",
+        department: "Department of Computer Application",
+        wef: "Tentative Time Table: III Sem w.e.f. 27-07-2026",
+        room: "Beta 217",
+        semester: "BCA Sem: III",
+        section: "SEC :D (AI/ML), (CC), (CSF), (IOT)",
+        coordinator: "Mr Prashant Kumar",
+        hod: "DR. TARUN VASHISHTH",
+        hodTitle: "HOD",
+        periods: [
+          { name: "FIRST", time: "09:15-10:15" },
+          { name: "SECOND", time: "10:15-11:15" },
+          { name: "THIRD", time: "11:15 - 12:15" },
+          { name: "FOURTH", time: "12:15 - 01:15" },
+          { name: "FIFTH", time: "01:15-01:45", isLunch: true },
+          { name: "SIXTH", time: "01:45- 02:45" },
+          { name: "SEVENTH", time: "02:45 - 03:45" }
+        ],
+        schedule: [
+          {
+            day: "MONDAY", lunchChar: "L",
+            slots: [
+              { text: "PK - (AI/ML) / AT - (IOT) /KP- (CC) / DRS- (CSF)", colspan: 1 },
+              { text: "AS - ( DIG MA)", colspan: 1 },
+              { text: "KK - (P&S)", colspan: 1 },
+              { text: "AK - (PP LAB)", colspan: 1 },
+              { text: "IT CERTIFACTION / APPLE LAB", colspan: 1 },
+              { text: "SPORTS", colspan: 1 }
+            ]
+          },
+          {
+            day: "TUESDAY", lunchChar: "U",
+            slots: [
+              { text: "PK - (AI/ML) / AT - (IOT) / KP- (CC) / DRS- (CSF)", colspan: 1 },
+              { text: "AK - (PP)", colspan: 1 },
+              { text: "DV - (DS)", colspan: 1 },
+              { text: "AS - ( DIG MA)", colspan: 1 },
+              { text: "PK - (AI/ML LAB) / AT - (IOT LAB) / KP- (CC LAB) / DRS- (CSF LAB)", colspan: 2 }
+            ]
+          },
+          {
+            day: "WEDNESDAY", lunchChar: "N",
+            slots: [
+              { text: "PK - (AI/ML) / AT - (IOT) / KP- (CC) / DRS- (CSF)", colspan: 1 },
+              { text: "AK - (PP)", colspan: 1 },
+              { text: "PK - (MINI PROJ)", colspan: 1 },
+              { text: "KK - (P&S)", colspan: 1 },
+              { text: "AK - (PP LAB)", colspan: 1 },
+              { text: "SPORTS", colspan: 1 }
+            ]
+          },
+          {
+            day: "THURSDAY", lunchChar: "C",
+            slots: [
+              { text: "KK - (P&S)", colspan: 1 },
+              { text: "DV - (DS)", colspan: 1 },
+              { text: "AK - (PP)", colspan: 1 },
+              { text: "DV - (DS LAB )", colspan: 1 },
+              { text: "SPORTS", colspan: 2 }
+            ]
+          },
+          {
+            day: "FRIDAY", lunchChar: "H",
+            slots: [
+              { text: "KK - (P&S)", colspan: 1 },
+              { text: "DV - (DS)", colspan: 1 },
+              { text: "PK - (MINI PROJ LAB)", colspan: 1 },
+              { text: "DV - (DS LAB )", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 },
+              { text: "SPORTS", colspan: 1 }
+            ]
+          }
+        ],
+        subjects: [
+          { code: "UE02MAAM05", initials: "AI/ML", name: "ARTIFCIAL INTELLIGENCE & MACHINE LEARNING", lectures: 3, facultyInit: "HSPK", facultyName: "MR. PRASHANT KUMAR" },
+          { code: "UE02MACC01", initials: "CC", name: "CLOUD COMPUTING", lectures: 3, facultyInit: "ST", facultyName: "MS. KOMAL PANWAR" },
+          { code: "UE02MACS01", initials: "CSF", name: "CYBER SECURITY & FORENSIC", lectures: 3, facultyInit: "DRS", facultyName: "DR. RAJINDER SINGH SODHI" },
+          { code: "UE03MAIT01", initials: "IOT", name: "INTERNET OF THINGS", lectures: 3, facultyInit: "AT", facultyName: "MR. ATUL SHARMA" },
+          { code: "UE02MAAM06", initials: "DS", name: "DATA STRUCTURE USING C", lectures: 3, facultyInit: "DV", facultyName: "MS. DIVYANJLI" },
+          { code: "UE02MAAM07", initials: "PP", name: "PYTHON PROGRAMMING", lectures: 3, facultyInit: "AK", facultyName: "MR. ANKIT KUMAR" },
+          { code: "UE02MDAM03", initials: "P&S", name: "PROBABILITY & STATISTICS", lectures: 4, facultyInit: "KK", facultyName: "MR. KULDEEP KUMAR SINGH" },
+          { code: "UE02AEAM03", initials: "DIG MA", name: "DIGITAL MARKETING", lectures: 2, facultyInit: "AS", facultyName: "MS. ANJALI SHARMA" },
+          { code: "UE02SEAM03", initials: "MINI PRO", name: "MINI PROJECT", lectures: 2, facultyInit: "PK", facultyName: "MR. PRASHANT KUMAR" },
+          { code: "UE02VAAM03", initials: "IT", name: "IT CERTIFICATION/APPLE LAB", lectures: 1, facultyInit: "AP", facultyName: "MR. ARPIT" }
+        ]
+      },
+      {
+        id: "mca-3-a",
+        tabTitle: "MCA III SEC A",
+        category: "MCA",
+        university: "VIDYA UNIVERSITY, MEERUT",
+        department: "Department of Computer Application",
+        wef: "Tentative Time Table: III Sem w.e.f. 27-07-2026",
+        room: "Beta 207",
+        semester: "MCA Sem: III (AI/DS)",
+        section: "SEC :A",
+        coordinator: "Dr. Rajinder Singh Sodhi",
+        hod: "DR. TARUN VASHISHTH",
+        hodTitle: "HOD",
+        periods: [
+          { name: "FIRST", time: "09:15-10:15" },
+          { name: "SECOND", time: "10:15-11:15" },
+          { name: "THIRD", time: "11:15 - 12:15" },
+          { name: "FOURTH", time: "12:15 - 01:15" },
+          { name: "FIFTH", time: "01:15-01:45", isLunch: true },
+          { name: "SIXTH", time: "01:45- 02:45" },
+          { name: "SEVENTH", time: "02:45 - 03:45" }
+        ],
+        schedule: [
+          {
+            day: "MONDAY", lunchChar: "L",
+            slots: [
+              { text: "DV - ( DMT)", colspan: 1 },
+              { text: "DRS - (CNS)", colspan: 1 },
+              { text: "KP - (DV&A)", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 },
+              { text: "PK - (R PROG)", colspan: 1 },
+              { text: "PK - (R PROG LAB)", colspan: 1 }
+            ]
+          },
+          {
+            day: "TUESDAY", lunchChar: "U",
+            slots: [
+              { text: "DV - ( DMT)", colspan: 1 },
+              { text: "DRS - (CNS)", colspan: 1 },
+              { text: "KP - (DV&A)", colspan: 1 },
+              { text: "PK - (R PROG  LAB)", colspan: 1 },
+              { text: "HS - (NLP)", colspan: 1 },
+              { text: "SPORTS", colspan: 1 }
+            ]
+          },
+          {
+            day: "WEDNESDAY", lunchChar: "N",
+            slots: [
+              { text: "DV - ( DMT)", colspan: 1 },
+              { text: "DRS - (CNS)", colspan: 1 },
+              { text: "HS - (NLP)", colspan: 1 },
+              { text: "DRS - (MINI PRO)", colspan: 1 },
+              { text: "HS - (NLP LAB)", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 }
+            ]
+          },
+          {
+            day: "THURSDAY", lunchChar: "C",
+            slots: [
+              { text: "IT CERTIFACTION / APPLE LAB", colspan: 1 },
+              { text: "DRS - (MINI PRO LAB)", colspan: 1 },
+              { text: "KP - (DV&A)", colspan: 1 },
+              { text: "DRS - (CNS LAB)", colspan: 1 },
+              { text: "PK - (R PROG)", colspan: 1 },
+              { text: "SPORTS", colspan: 1 }
+            ]
+          },
+          {
+            day: "FRIDAY", lunchChar: "H",
+            slots: [
+              { text: "DV - ( DMT)", colspan: 1 },
+              { text: "HS - (NLP)", colspan: 1 },
+              { text: "HS - (NLP LAB)", colspan: 1 },
+              { text: "DRS - (CNS LAB)", colspan: 1 },
+              { text: "PK - (R PROG)", colspan: 1 },
+              { text: "SPORTS", colspan: 1 }
+            ]
+          }
+        ],
+        subjects: [
+          { code: "PE03MAAD01", initials: "NLP", name: "NATURAL LANGUAGE PROCESSING", lectures: 3, facultyInit: "HS", facultyName: "MR. HIMANSHU SAINI" },
+          { code: "PE03MAAD02", initials: "R Prog", name: "R PROGRAMMING", lectures: 3, facultyInit: "PK", facultyName: "MR. PRASHANT KUMAR" },
+          { code: "PE03MAAD03", initials: "CNS", name: "COMPUTER NETWORK SECURITY", lectures: 3, facultyInit: "DRS", facultyName: "DR. RAJINDER SINGH SODHI" },
+          { code: "PE02MIAD04", initials: "DM", name: "DATA MINING TECHNIQUES", lectures: 4, facultyInit: "DV", facultyName: "MS. DIVYANJLI" },
+          { code: "PE03DEAD05", initials: "DV&A", name: "DATA VISUALIZATION & ANALYTICS", lectures: 3, facultyInit: "KP", facultyName: "MS. KOMAL PANWAR" },
+          { code: "PE03RPAD08", initials: "MINI PRO", name: "MINI PROJECT", lectures: 2, facultyInit: "DRS", facultyName: "DR. RAJINDER SINGH SODHI" }
+        ]
+      },
+      {
+        id: "bca-5-a",
+        tabTitle: "BCA V SEC A",
+        category: "BCA V",
+        university: "VIDYA UNIVERSITY, MEERUT",
+        department: "Department of Computer Application",
+        wef: "Tentative Time Table: V Sem w.e.f. 27-07-2026",
+        room: "Beta 214",
+        semester: "BCA Sem: V",
+        section: "SEC :A",
+        coordinator: "Mr. Ankit Kumar",
+        hod: "DR. TARUN VASHISHTH",
+        hodTitle: "HOD",
+        periods: [
+          { name: "FIRST", time: "09:15-10:15" },
+          { name: "SECOND", time: "10:15-11:15" },
+          { name: "THIRD", time: "11:15 - 12:15" },
+          { name: "FOURTH", time: "12:15 - 01:15" },
+          { name: "FIFTH", time: "01:15-01:45", isLunch: true },
+          { name: "SIXTH", time: "01:45- 02:45" },
+          { name: "SEVENTH", time: "02:45 - 03:45" }
+        ],
+        schedule: [
+          {
+            day: "MONDAY", lunchChar: "L",
+            slots: [
+              { text: "DT - ( JAVA)", colspan: 1 },
+              { text: "NC - (NM)", colspan: 1 },
+              { text: "DRS - ( DBMS)", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 },
+              { text: "AK (CN)", colspan: 1 },
+              { text: "DT - ( JAVA LAB)", colspan: 1 }
+            ]
+          },
+          {
+            day: "TUESDAY", lunchChar: "U",
+            slots: [
+              { text: "DT - ( JAVA)", colspan: 1 },
+              { text: "NC - (NM)", colspan: 1 },
+              { text: "AK (CN)", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 },
+              { text: "AK-(PROJECT LAB)", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 }
+            ]
+          },
+          {
+            day: "WEDNESDAY", lunchChar: "N",
+            slots: [
+              { text: "DT - ( JAVA)", colspan: 1 },
+              { text: "NC - (NM)", colspan: 1 },
+              { text: "DRS - ( DBMS LAB)", colspan: 1 },
+              { text: "DT - ( JAVA LAB)", colspan: 1 },
+              { text: "SPORTS", colspan: 2 }
+            ]
+          },
+          {
+            day: "THURSDAY", lunchChar: "C",
+            slots: [
+              { text: "DRS - ( DBMS)", colspan: 1 },
+              { text: "NC - (NM)", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 },
+              { text: "AK (CN)", colspan: 1 },
+              { text: "AK-(PROJECT LAB)", colspan: 1 },
+              { text: "SPORTS", colspan: 1 }
+            ]
+          },
+          {
+            day: "FRIDAY", lunchChar: "H",
+            slots: [
+              { text: "DRS - ( DBMS)", colspan: 1 },
+              { text: "DRS - ( DBMS LAB)", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 },
+              { text: "AK (CN)", colspan: 1 },
+              { text: "SPORTS", colspan: 2 }
+            ]
+          }
+        ],
+        subjects: [
+          { code: "BCA - 501", initials: "DBMS", name: "INTRODUCTION TO DBMS", lectures: 4, facultyInit: "DRS", facultyName: "DR. RAJINDER SINGH SODHI" },
+          { code: "BCA - 502", initials: "JAVA", name: "JAVA PROGRAMMING WEBPAGE DESIGN", lectures: 4, facultyInit: "DT", facultyName: "DR. TARUN VASHISHTH" },
+          { code: "BCA - 503", initials: "CN", name: "COMPUTER NETWORK", lectures: 4, facultyInit: "AK", facultyName: "MR. ANKIT KUMAR" },
+          { code: "BCA - 504", initials: "NM", name: "NUMERICAL METHOD", lectures: 4, facultyInit: "NC", facultyName: "MR. NEERAJ CHAUHAN" },
+          { code: "BCA - 508", initials: "PROJECT", name: "MINOR PROJECT", lectures: 2, facultyInit: "PROJECT", facultyName: "MR. ANKIT KUMAR" }
+        ]
+      },
+      {
+        id: "bca-5-b",
+        tabTitle: "BCA V SEC B",
+        category: "BCA V",
+        university: "VIDYA UNIVERSITY, MEERUT",
+        department: "Department of Computer Application",
+        wef: "Tentative Time Table: V Sem w.e.f. 27-07-2026",
+        room: "Beta 215",
+        semester: "BCA Sem: V",
+        section: "SEC :B",
+        coordinator: "Ms. Anjali Sharma",
+        hod: "DR. TARUN VASHISHTH",
+        hodTitle: "HOD",
+        periods: [
+          { name: "FIRST", time: "09:15-10:15" },
+          { name: "SECOND", time: "10:15-11:15" },
+          { name: "THIRD", time: "11:15 - 12:15" },
+          { name: "FOURTH", time: "12:15 - 01:15" },
+          { name: "FIFTH", time: "01:15-01:45", isLunch: true },
+          { name: "SIXTH", time: "01:45- 02:45" },
+          { name: "SEVENTH", time: "02:45 - 03:45" }
+        ],
+        schedule: [
+          {
+            day: "MONDAY", lunchChar: "L",
+            slots: [
+              { text: "X- (CN)", colspan: 1 },
+              { text: "DT - ( JAVA)", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 },
+              { text: "AS- (CN)", colspan: 1 },
+              { text: "NC - (NM)", colspan: 1 },
+              { text: "SPORTS", colspan: 1 }
+            ]
+          },
+          {
+            day: "TUESDAY", lunchChar: "U",
+            slots: [
+              { text: "X- (CN)", colspan: 1 },
+              { text: "AS - ( DBMS )", colspan: 1 },
+              { text: "AS- (CN)", colspan: 1 },
+              { text: "DT - ( JAVA LAB)", colspan: 1 },
+              { text: "DT - ( JAVA LAB)", colspan: 1 },
+              { text: "NC - (NM)", colspan: 1 }
+            ]
+          },
+          {
+            day: "WEDNESDAY", lunchChar: "N",
+            slots: [
+              { text: "AS - ( DBMS)", colspan: 1 },
+              { text: "AS - ( DBMS LAB)", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 },
+              { text: "AS-(PROJECT LAB)", colspan: 1 },
+              { text: "AS- (CN)", colspan: 1 },
+              { text: "SPORTS", colspan: 1 }
+            ]
+          },
+          {
+            day: "THURSDAY", lunchChar: "C",
+            slots: [
+              { text: "DT - ( JAVA)", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 },
+              { text: "AS-(PROJECT LAB)", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 },
+              { text: "NC - (NM)", colspan: 1 }
+            ]
+          },
+          {
+            day: "FRIDAY", lunchChar: "H",
+            slots: [
+              { text: "DT - ( JAVA)", colspan: 1 },
+              { text: "AS- (CN)", colspan: 1 },
+              { text: "AS - ( DBMS)", colspan: 1 },
+              { text: "LIBRARY", colspan: 1 },
+              { text: "AS - ( DBMS LAB)", colspan: 1 },
+              { text: "NC - (NM)", colspan: 1 }
+            ]
+          }
+        ],
+        subjects: [
+          { code: "BCA - 501", initials: "DBMS", name: "INTRODUCTION TO DBMS", lectures: 4, facultyInit: "DRS", facultyName: "MS. ANJALI SHARMA" },
+          { code: "BCA - 502", initials: "JAVA", name: "JAVA PROGRAMMING WEBPAGE DESIGN", lectures: 4, facultyInit: "DT", facultyName: "DR. TARUN VASHISHTH" },
+          { code: "BCA - 503", initials: "CN", name: "COMPUTER NETWORK", lectures: 4, facultyInit: "X", facultyName: "MR. X" },
+          { code: "BCA - 504", initials: "NM", name: "NUMERICAL METHOD", lectures: 4, facultyInit: "NC", facultyName: "MR. NEERAJ CHAUHAN" },
+          { code: "BCA - 508", initials: "PROJECT", name: "MINOR PROJECT", lectures: 2, facultyInit: "PROJECT", facultyName: "MS. ANJALI SHARMA" }
+        ]
+      }
+    ];
+
+    let activeSheetIndex = 0;
+    let currentProgramFilter = 'ALL';
+    let currentSearchTerm = '';
+    let selectedFaculty = 'ALL'; // 'ALL' or specific faculty name
+
+    // Utility to categorize slot type
+    function getSlotClass(rawText) {
+      const text = (rawText || '').toUpperCase();
+      if (text.includes('LAB') || text.includes('PROJECT LAB')) return 'type-lab';
+      if (text.includes('SPORT')) return 'type-sports';
+      if (text.includes('LIBRARY')) return 'type-library';
+      if (text.includes('CERTIFACTION') || text.includes('APPLE')) return 'type-cert';
+      return 'type-lecture';
+    }
+
+    // Build list of all faculty members
+    function extractFacultyList() {
+      const facultyMap = new Map(); // Name -> Set of initials
+
+      TIMETABLE_DATA.forEach(sheet => {
+        sheet.subjects.forEach(sub => {
+          let fname = (sub.facultyName || '').trim();
+          let finit = (sub.facultyInit || '').trim();
+          if (fname && fname.length > 2) {
+            if (!facultyMap.has(fname)) {
+              facultyMap.set(fname, new Set());
+            }
+            if (finit) facultyMap.get(fname).add(finit);
+          }
+        });
+      });
+
+      return Array.from(facultyMap.keys()).sort();
+    }
+
+    // Populate Faculty Dropdown
+    function populateFacultyDropdown() {
+      const dropdown = document.getElementById('facultyDropdown');
+      const faculties = extractFacultyList();
+
+      dropdown.innerHTML = `<option value="ALL">-- Choose faculty --</option>`;
+      faculties.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f;
+        opt.textContent = f;
+        if (selectedFaculty === f) opt.selected = true;
+        dropdown.appendChild(opt);
+      });
+    }
+
+    function handleFacultySelect(val) {
+      selectedFaculty = val;
+      const catFilter = document.getElementById('categoryFilterGroup');
+      const tabNav = document.getElementById('tabNavContainer');
+
+      if (selectedFaculty !== 'ALL') {
+        catFilter.style.display = 'none';
+        tabNav.style.display = 'none';
+        renderFacultyTimetable(selectedFaculty);
+      } else {
+        catFilter.style.display = 'flex';
+        tabNav.style.display = 'flex';
+        renderTabs();
+        renderActiveTimetable();
+      }
+    }
+
+    // Render Tabs
+    function renderTabs() {
+      const container = document.getElementById('tabNavContainer');
+      container.innerHTML = '';
+
+      TIMETABLE_DATA.forEach((sheet, idx) => {
+        const matchesFilter = currentProgramFilter === 'ALL' ||
+          (currentProgramFilter === 'MCA' && sheet.category === 'MCA') ||
+          (currentProgramFilter === sheet.category);
+
+        if (!matchesFilter) return;
+
+        const btn = document.createElement('button');
+        btn.className = `tab-btn ${idx === activeSheetIndex ? 'active' : ''}`;
+        btn.innerHTML = `
+      <span>${sheet.tabTitle}</span>
+      <span class="tab-badge">${sheet.room}</span>
+    `;
+        btn.onclick = () => selectTab(idx);
+        container.appendChild(btn);
+      });
+    }
+
+    function selectTab(index) {
+      activeSheetIndex = index;
+      renderTabs();
+      renderActiveTimetable();
+      if (currentSearchTerm) {
+        applySearchHighlight(currentSearchTerm);
+      }
+    }
+
+    function filterByProgram(prog) {
+      currentProgramFilter = prog;
+      document.querySelectorAll('.filter-chip').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent.trim().toUpperCase() === prog.toUpperCase() || (prog === 'ALL' && btn.textContent.includes('All')));
+      });
+
+      const firstVisibleIdx = TIMETABLE_DATA.findIndex(sheet =>
+        prog === 'ALL' || (prog === 'MCA' && sheet.category === 'MCA') || (sheet.category === prog)
+      );
+      if (firstVisibleIdx !== -1) {
+        activeSheetIndex = firstVisibleIdx;
+      }
+      renderTabs();
+      renderActiveTimetable();
+    }
+
+    // Standard Section Timetable View
+    function renderActiveTimetable() {
+      const sheet = TIMETABLE_DATA[activeSheetIndex];
+      const container = document.getElementById('timetableContainer');
+      if (!sheet) {
+        container.innerHTML = `<div style="padding:40px; text-align:center;">No timetable available.</div>`;
+        return;
+      }
+
+      let html = `
+    <div class="sheet-card" id="activeCard">
+      <div class="sheet-meta-bar">
+        <div class="meta-tags">
+          <span class="tag tag-blue">🏫 Room: <strong>${sheet.room}</strong></span>
+          <span class="tag tag-purple">🎓 ${sheet.semester} &bull; ${sheet.section}</span>
+          <span class="tag coordinator-tag">👤 Coordinator: ${sheet.coordinator}</span>
+        </div>
+        <div class="wef-pill">${sheet.wef}</div>
+      </div>
+
+      <div class="table-container">
+        <table class="timetable-grid">
+          <thead>
+            <tr>
+              <th>Lectures</th>
+              ${sheet.periods.map(p => `<th>${p.name}</th>`).join('')}
+            </tr>
+            <tr>
+              <th>Days / Timings</th>
+              ${sheet.periods.map(p => `<th>${p.time}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+  `;
+
+      sheet.schedule.forEach(row => {
+        html += `<tr>`;
+        html += `<td class="day-cell">${row.day}</td>`;
+
+        let slotIdx = 0;
+        let coveredColspan = 0;
+
+        // First 4 periods
+        while (slotIdx < row.slots.length && coveredColspan < 4) {
+          const slot = row.slots[slotIdx];
+          const slotClass = getSlotClass(slot.text);
+          html += `
+        <td colspan="${slot.colspan}">
+          <div class="cell-content ${slotClass}" data-searchable="${slot.text.toLowerCase()}">
+            ${slot.text.trim()}
+          </div>
+        </td>
+      `;
+          coveredColspan += slot.colspan;
+          slotIdx++;
+        }
+
+        // Lunch column (period 5)
+        html += `<td class="lunch-cell">${row.lunchChar}</td>`;
+
+        // Remaining periods (period 6 and 7)
+        while (slotIdx < row.slots.length) {
+          const slot = row.slots[slotIdx];
+          const slotClass = getSlotClass(slot.text);
+          html += `
+        <td colspan="${slot.colspan}">
+          <div class="cell-content ${slotClass}" data-searchable="${slot.text.toLowerCase()}">
+            ${slot.text.trim()}
+          </div>
+        </td>
+      `;
+          slotIdx++;
+        }
+
+        html += `</tr>`;
+      });
+
+      html += `
+          </tbody>
+        </table>
+      </div>
+
+      <div class="subjects-section">
+        <div class="subjects-header">
+          <h3>📚 Subject & Faculty Directory</h3>
+          <span style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">Direct from Registry</span>
+        </div>
+        <div class="table-container">
+          <table class="subject-table">
+            <thead>
+              <tr>
+                <th style="width: 140px;">Sub Code</th>
+                <th style="width: 110px;">Initials</th>
+                <th>Subject Name</th>
+                <th style="width: 90px; text-align:center;">Lectures</th>
+                <th style="width: 120px;">Faculty Initials</th>
+                <th>Faculty Name</th>
+              </tr>
+            </thead>
+            <tbody>
+  `;
+
+      sheet.subjects.forEach(sub => {
+        html += `
+      <tr class="subject-row" data-searchable="${(sub.code + ' ' + sub.initials + ' ' + sub.name + ' ' + sub.facultyInit + ' ' + sub.facultyName).toLowerCase()}">
+        <td><span class="code-badge">${sub.code}</span></td>
+        <td><strong>${sub.initials}</strong></td>
+        <td>${sub.name}</td>
+        <td style="text-align:center; font-weight:700;">${sub.lectures}</td>
+        <td><span class="code-badge">${sub.facultyInit}</span></td>
+        <td class="faculty-badge">${sub.facultyName}</td>
+      </tr>
+    `;
+      });
+
+      html += `
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="sheet-footer">
+        <div class="hod-signature">
+          <span class="hod-name">${sheet.hod}</span>
+          <span class="hod-title">${sheet.hodTitle}</span>
+        </div>
+      </div>
+    </div>
+  `;
+
+      container.innerHTML = html;
+    }
+
+    // Dedicated Faculty Timetable View
+    function renderFacultyTimetable(facultyName) {
+      const container = document.getElementById('timetableContainer');
+
+      // Find all faculty initials linked with this faculty
+      const facultyInitials = new Set();
+      const assignedSubjects = [];
+
+      TIMETABLE_DATA.forEach(sheet => {
+        sheet.subjects.forEach(s => {
+          if ((s.facultyName || '').trim().toUpperCase() === facultyName.trim().toUpperCase()) {
+            if (s.facultyInit) facultyInitials.add(s.facultyInit.trim().toUpperCase());
+            assignedSubjects.push({
+              section: sheet.tabTitle,
+              room: sheet.room,
+              subCode: s.code,
+              subName: s.name,
+              initials: s.initials,
+              lectures: s.lectures
+            });
+          }
+        });
+      });
+
+      // Standard days & period slots
+      const days = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"];
+      const standardPeriods = [
+        { num: 1, name: "FIRST", time: "09:15-10:15" },
+        { num: 2, name: "SECOND", time: "10:15-11:15" },
+        { num: 3, name: "THIRD", time: "11:15 - 12:15" },
+        { num: 4, name: "FOURTH", time: "12:15 - 01:15" },
+        { num: 5, name: "FIFTH", time: "01:15-01:45", isLunch: true },
+        { num: 6, name: "SIXTH", time: "01:45- 02:45" },
+        { num: 7, name: "SEVENTH", time: "02:45 - 03:45" }
+      ];
+
+      // Map of [day][periodNum] -> array of classes taught
+      const facultyGrid = {};
+      days.forEach(d => {
+        facultyGrid[d] = { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [] };
+      });
+
+      let totalWeeklySessions = 0;
+      let totalLabSessions = 0;
+
+      // Scan all sheets
+      TIMETABLE_DATA.forEach(sheet => {
+        // Check faculty initials used in this specific sheet
+        const initialsInThisSheet = new Set();
+        sheet.subjects.forEach(s => {
+          if ((s.facultyName || '').trim().toUpperCase() === facultyName.trim().toUpperCase() && s.facultyInit) {
+            initialsInThisSheet.add(s.facultyInit.trim().toUpperCase());
+          }
+        });
+
+        sheet.schedule.forEach(row => {
+          const day = row.day.trim().toUpperCase();
+          if (!facultyGrid[day]) return;
+
+          // Expand slots to period indices
+          let currentPeriod = 1;
+          row.slots.forEach((slot, sIdx) => {
+            // Handle lunch boundary at period 5
+            if (currentPeriod === 5) {
+              currentPeriod = 6;
+            }
+
+            const slotUpper = slot.text.toUpperCase();
+            // Check if any initial belongs to faculty
+            let matches = false;
+            initialsInThisSheet.forEach(init => {
+              // match format like "AK -", "AK (", "AK-", "/ AK", "AK/"
+              const regex = new RegExp(`(^|[/\\s])${init}([-/\\s(]|$)`);
+              if (regex.test(slotUpper)) matches = true;
+            });
+
+            if (matches) {
+              const isLab = slotUpper.includes('LAB');
+              for (let c = 0; c < slot.colspan; c++) {
+                const pIdx = currentPeriod + c;
+                if (pIdx <= 7) {
+                  facultyGrid[day][pIdx].push({
+                    text: slot.text.trim(),
+                    section: sheet.tabTitle,
+                    room: sheet.room,
+                    isLab: isLab
+                  });
+                  totalWeeklySessions++;
+                  if (isLab) totalLabSessions++;
+                }
+              }
+            }
+            currentPeriod += slot.colspan;
+          });
+        });
+      });
+
+      let html = `
+    <!-- Faculty Hero Banner -->
+    <div class="faculty-view-banner">
+      <div>
+        <h2>${facultyName}</h2>
+        <p>Consolidated Master Schedule across all Computer Application Programs</p>
+        <p style="font-size:0.8rem; margin-top:4px; opacity:0.85;">Initials: <strong>${Array.from(facultyInitials).join(', ') || 'N/A'}</strong></p>
+      </div>
+      <div class="faculty-stats-badges">
+        <div class="faculty-stat-pill">
+          <span class="num">${totalWeeklySessions}</span>
+          <span class="label">Hours / Wk</span>
+        </div>
+        <div class="faculty-stat-pill">
+          <span class="num">${totalLabSessions}</span>
+          <span class="label">Lab Slots</span>
+        </div>
+        <div class="faculty-stat-pill">
+          <span class="num">${totalWeeklySessions - totalLabSessions}</span>
+          <span class="label">Theory Slots</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timetable Grid -->
+    <div class="sheet-card">
+      <div class="sheet-meta-bar">
+        <div class="meta-tags">
+          <span class="tag tag-green">👤 Faculty Timetable View</span>
+          <span class="tag tag-blue">🏫 Campus: Beta Block</span>
+        </div>
+        <button class="btn btn-primary" onclick="resetToStandardView()">← Back to Section View</button>
+      </div>
+
+      <div class="table-container">
+        <table class="timetable-grid">
+          <thead>
+            <tr>
+              <th>Lectures</th>
+              ${standardPeriods.map(p => `<th>${p.name}</th>`).join('')}
+            </tr>
+            <tr>
+              <th>Days / Timings</th>
+              ${standardPeriods.map(p => `<th>${p.time}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+  `;
+
+      days.forEach(day => {
+        html += `<tr>`;
+        html += `<td class="day-cell">${day}</td>`;
+
+        for (let p = 1; p <= 7; p++) {
+          if (p === 5) {
+            html += `<td class="lunch-cell">LUNCH</td>`;
+            continue;
+          }
+
+          const sessions = facultyGrid[day][p];
+          if (sessions && sessions.length > 0) {
+            html += `<td>`;
+            sessions.forEach(s => {
+              html += `
+            <div class="cell-content ${s.isLab ? 'type-lab' : 'type-lecture'}" style="margin-bottom:4px;">
+              <span style="font-weight:700;">${s.text}</span>
+              <span style="font-size:0.75rem; color:var(--text-muted);">${s.section} &bull; Rm ${s.room}</span>
+            </div>
+          `;
+            });
+            html += `</td>`;
+          } else {
+            html += `<td><span style="color:var(--text-muted); font-size:0.8rem;">—</span></td>`;
+          }
+        }
+
+        html += `</tr>`;
+      });
+
+      html += `
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Allocated Subjects Reference -->
+      <div class="subjects-section">
+        <div class="subjects-header">
+          <h3>📚 Courses Handled by ${facultyName}</h3>
+        </div>
+        <div class="table-container">
+          <table class="subject-table">
+            <thead>
+              <tr>
+                <th>Section</th>
+                <th>Room</th>
+                <th>Sub Code</th>
+                <th>Initials</th>
+                <th>Subject Name</th>
+                <th style="text-align:center;">Lectures/Wk</th>
+              </tr>
+            </thead>
+            <tbody>
+  `;
+
+      if (assignedSubjects.length === 0) {
+        html += `<tr><td colspan="6" style="text-align:center; padding:16px; color:var(--text-muted);">No distinct subjects assigned.</td></tr>`;
+      } else {
+        assignedSubjects.forEach(s => {
+          html += `
+        <tr>
+          <td><strong>${s.section}</strong></td>
+          <td><span class="code-badge">${s.room}</span></td>
+          <td><span class="code-badge">${s.subCode}</span></td>
+          <td><strong>${s.initials}</strong></td>
+          <td>${s.subName}</td>
+          <td style="text-align:center; font-weight:700;">${s.lectures}</td>
+        </tr>
+      `;
+        });
+      }
+
+      html += `
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+
+      container.innerHTML = html;
+    }
+
+    function resetToStandardView() {
+      document.getElementById('facultyDropdown').value = 'ALL';
+      handleFacultySelect('ALL');
+    }
+
+    // Live Search
+    function handleSearch(val) {
+      currentSearchTerm = val.trim().toLowerCase();
+      applySearchHighlight(currentSearchTerm);
+    }
+
+    function applySearchHighlight(term) {
+      const cells = document.querySelectorAll('.cell-content');
+      const rows = document.querySelectorAll('.subject-row');
+
+      cells.forEach(el => {
+        if (!term) {
+          el.classList.remove('highlighted');
+          return;
+        }
+        const text = el.getAttribute('data-searchable') || el.textContent.toLowerCase();
+        if (text.includes(term)) {
+          el.classList.add('highlighted');
+        } else {
+          el.classList.remove('highlighted');
+        }
+      });
+
+      rows.forEach(row => {
+        if (!term) {
+          row.style.backgroundColor = '';
+          return;
+        }
+        const text = row.getAttribute('data-searchable') || row.textContent.toLowerCase();
+        if (text.includes(term)) {
+          row.style.backgroundColor = 'var(--primary-subtle)';
+        } else {
+          row.style.backgroundColor = '';
+        }
+      });
+    }
+
+    // Dynamic Excel Upload Handler using SheetJS
+    function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+
+          const parsedSheets = [];
+
+          workbook.SheetNames.forEach((sheetName, sIdx) => {
+            const ws = workbook.Sheets[sheetName];
+            if (!ws['!ref']) return;
+
+            // Extract metadata rows
+            const univ = ws['A1'] ? ws['A1'].v : 'VIDYA UNIVERSITY, MEERUT';
+            const dept = ws['A2'] ? ws['A2'].v : 'Department of Computer Application';
+            const wef = ws['A3'] ? ws['A3'].v : 'Time Table w.e.f.';
+            const r4 = ws['A4'] ? ws['A4'].v : '';
+
+            // Extract room and coordinator from Row 4
+            let room = 'N/A';
+            let semester = 'Sem';
+            let section = 'Sec';
+            let coordinator = 'Class Coordinator';
+
+            if (r4) {
+              const roomMatch = r4.match(/Room\s*No[-:\s]*([^A-Za-z0-9]*)([A-Za-z0-9\s]+?)(BCA|MCA|B\.?sc|SEC|$)/i);
+              if (roomMatch && roomMatch[2]) room = roomMatch[2].trim();
+
+              const coordMatch = r4.match(/Class\s*Coordinator[-:\s]*(.*)/i);
+              if (coordMatch && coordMatch[1]) coordinator = coordMatch[1].trim();
+
+              const semMatch = r4.match(/((BCA|MCA|B\.?sc CS)\s*Sem[-:\s]*[IVX]+)/i);
+              if (semMatch) semester = semMatch[1].trim();
+
+              const secMatch = r4.match(/(SEC\s*[-:\s]*[A-D][^C]*)/i);
+              if (secMatch) section = secMatch[1].trim();
+            }
+
+            // Determine Category
+            let cat = 'BCA';
+            if (sheetName.includes('MCA')) cat = 'MCA';
+            else if (sheetName.includes('BSC') || sheetName.includes('B.SC')) cat = 'B.Sc CS I';
+            else if (sheetName.includes('III')) cat = 'BCA III';
+            else if (sheetName.includes('V')) cat = 'BCA V';
+            else if (sheetName.includes('I')) cat = 'BCA I';
+
+            // Read Schedule (Rows 7 to 11)
+            const days = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'];
+            const schedule = [];
+
+            for (let r = 7; r <= 11; r++) {
+              const dayCell = ws[`A${r}`] ? String(ws[`A${r}`].v).trim() : days[r - 7];
+              const lunchCell = ws[`G${r}`] ? String(ws[`G${r}`].v).trim() : 'L';
+
+              // Periods 1 to 4
+              const slots = [];
+              const b = ws[`B${r}`] ? String(ws[`B${r}`].v).trim() : '';
+              const c = ws[`C${r}`] ? String(ws[`C${r}`].v).trim() : '';
+              const d = ws[`D${r}`] ? String(ws[`D${r}`].v).trim() : '';
+              const f = ws[`F${r}`] ? String(ws[`F${r}`].v).trim() : '';
+
+              if (b) slots.push({ text: b, colspan: 1 });
+              if (c) slots.push({ text: c, colspan: 1 });
+              if (d) slots.push({ text: d, colspan: 1 });
+              if (f) slots.push({ text: f, colspan: 1 });
+
+              // Periods 6 & 7
+              const i = ws[`I${r}`] ? String(ws[`I${r}`].v).trim() : '';
+              const j = ws[`J${r}`] ? String(ws[`J${r}`].v).trim() : '';
+              if (i && !j) {
+                slots.push({ text: i, colspan: 2 });
+              } else {
+                if (i) slots.push({ text: i, colspan: 1 });
+                if (j) slots.push({ text: j, colspan: 1 });
+              }
+
+              schedule.push({
+                day: dayCell,
+                lunchChar: lunchCell,
+                slots: slots
+              });
+            }
+
+            // Read Subject Directory (Row 13 downwards)
+            const subjects = [];
+            let rIdx = 13;
+            while (ws[`D${rIdx}`] || ws[`A${rIdx}`]) {
+              const code = ws[`A${rIdx}`] ? String(ws[`A${rIdx}`].v).trim() : '-';
+              const init = ws[`C${rIdx}`] ? String(ws[`C${rIdx}`].v).trim() : '-';
+              const name = ws[`D${rIdx}`] ? String(ws[`D${rIdx}`].v).trim() : '';
+              const lec = ws[`G${rIdx}`] ? ws[`G${rIdx}`].v : 2;
+              const fInit = ws[`H${rIdx}`] ? String(ws[`H${rIdx}`].v).trim() : '';
+              const fName = ws[`I${rIdx}`] ? String(ws[`I${rIdx}`].v).trim() : '';
+
+              if (name && !name.includes('DR. TARUN')) {
+                subjects.push({
+                  code: code,
+                  initials: init,
+                  name: name,
+                  lectures: lec,
+                  facultyInit: fInit,
+                  facultyName: fName
+                });
+              }
+              rIdx++;
+            }
+
+            parsedSheets.push({
+              id: `tab-${sIdx}`,
+              tabTitle: sheetName.trim(),
+              category: cat,
+              university: univ,
+              department: dept,
+              wef: wef,
+              room: room,
+              semester: semester,
+              section: section,
+              coordinator: coordinator,
+              hod: "DR. TARUN VASHISHTH",
+              hodTitle: "HOD",
+              periods: [
+                { name: "FIRST", time: "09:15-10:15" },
+                { name: "SECOND", time: "10:15-11:15" },
+                { name: "THIRD", time: "11:15 - 12:15" },
+                { name: "FOURTH", time: "12:15 - 01:15" },
+                { name: "FIFTH", time: "01:15-01:45", isLunch: true },
+                { name: "SIXTH", time: "01:45- 02:45" },
+                { name: "SEVENTH", time: "02:45 - 03:45" }
+              ],
+              schedule: schedule,
+              subjects: subjects
+            });
+          });
+
+          if (parsedSheets.length > 0) {
+            TIMETABLE_DATA = parsedSheets;
+            activeSheetIndex = 0;
+            selectedFaculty = 'ALL';
+            populateFacultyDropdown();
+            renderTabs();
+            renderActiveTimetable();
+            alert(`Successfully imported ${parsedSheets.length} timetables from ${file.name}!`);
+          } else {
+            alert("Could not find recognizable timetable sheets in the uploaded file.");
+          }
+        } catch (err) {
+          console.error(err);
+          alert("Error parsing excel file: " + err.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // Dark / Light Theme
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      if (isDark) {
+        html.removeAttribute('data-theme');
+        document.getElementById('themeIcon').textContent = '🌙';
+        document.getElementById('themeText').textContent = 'Dark';
+        localStorage.setItem('theme', 'light');
+      } else {
+        html.setAttribute('data-theme', 'dark');
+        document.getElementById('themeIcon').textContent = '☀️';
+        document.getElementById('themeText').textContent = 'Light';
+        localStorage.setItem('theme', 'dark');
+      }
+    }
+
+    // Page load initialization
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        document.getElementById('themeIcon').textContent = '☀️';
+        document.getElementById('themeText').textContent = 'Light';
+      }
+      populateFacultyDropdown();
+      renderTabs();
+      renderActiveTimetable();
+    });
+  </script>
+
+</body>
+
+</html>
